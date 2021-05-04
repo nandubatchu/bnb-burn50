@@ -53,6 +53,7 @@
             invites: 0,
             invitationTreeCount: 0,
             web3: null,
+            networkId: null,
             accounts: null,
             contract: null
         };
@@ -123,7 +124,7 @@
 
                 // Set web3, accounts, and contract to the state, and then proceed with an
                 // example of interacting with the contract's methods.
-                this.setState({ web3, accounts, contract: instance }, this.updateContractData);
+                this.setState({ web3, networkId, accounts, contract: instance }, this.updateContractData);
             } catch (error) {
                 // Catch any errors for any of the above operations.
                 console.error(error);
@@ -143,11 +144,9 @@
                 try {
                     const child = await contract.methods.reverseAncestry(address, childIndex).call();
                     const childBalance = await contract.methods.balances(child).call();
-                    console.log(child, childBalance);
                     links.push({ source: address, target: child });
                     expectedRoyalty += (childBalance / 2);
                     const childChartData = await this.fetchChartData(child);
-                    console.log(childChartData);
                     nodes = [...nodes, ...childChartData.nodes];
                     links = [...links, ...childChartData.links];
                     expectedRoyalty += (childChartData.expectedRoyalty / 2);
@@ -163,7 +162,6 @@
 
         updateChartData = async () => {
             this.setState({ accountLoading: true }, async () => {
-                console.log(this.state.accountLoading);
                 const { accounts } = this.state;
                 const address = accounts[0];
 
@@ -325,6 +323,10 @@
                                             Account \
                                             <span class="tag is-black">
                                                 ${address.substr(0, 15)}...
+                                            </span>
+
+                                            <span class="tag mx-2 is-warning ${this.state.networkId == 97 ? "" : "is-hidden"}">
+                                                TESTNET
                                             </span>
                                         </p>
                                         <div class="control ${this.state.accountLoading ? "is-loading" : ""}"></div>
