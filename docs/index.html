@@ -153,8 +153,7 @@
                 }
 
             }
-            // console.log(`nodes ${address}`, nodes);
-            // console.log(`links ${address}`, links);
+
             console.log(`expectedRoyalty ${address}`, expectedRoyalty);
             return { nodes, links, expectedRoyalty };
         }
@@ -174,7 +173,6 @@
             const invites = chartData.links.filter((x) => x.source === address).length;
             const invitationTreeCount = chartData.nodes.length - 1;
             const expectedRoyalty = Web3.utils.fromWei(chartData.expectedRoyalty.toString(), 'ether');
-            // royaltyPaid: 0,
 
             // Update state with the result.
             this.setState({ burntBalance, inviteeBonus, balance, ancestor, chartData, invites, invitationTreeCount, expectedRoyalty });
@@ -345,8 +343,7 @@
             const svgG = d3.create("svg")
                 .attr("width", width)
                 .attr("height", height)
-            // .attr("viewBox", [0, 0, width, height]);
-
+                            
             // Define the div for the tooltip
             const div = d3.select("body").append("div")
                 .attr("class", "tooltip")
@@ -355,11 +352,6 @@
             let viewBoxX = 0, viewBoxY = 0;
 
             const color = () => {
-                // const scale = d3.scaleOrdinal(d3.schemeCategory10);
-                // return d => scale(d.group);
-
-                // const scale = d3.scaleLinear().domain([10,1]).range(["grey", "black"]);
-                // return d => scale(d.group);
 
                 return (d) => {
                     if (d.group & d.group == 1) {
@@ -406,39 +398,20 @@
             const bgDrag = () => {
 
                 return d3.drag()
-                    // .on('start', function () {
-                    //     console.log('new dragstart is called');
-                    // })
                     .on('drag', function (e) {
                         viewBoxX -= e.dx;
                         viewBoxY -= e.dy;
                         svgG.select('g.node-area').attr('transform', 'translate(' + (-viewBoxX) + ',' + (-viewBoxY) + ')');
                     })
-                // .on('end', function () {
-                //     console.log('new dragend is called');
-                // });
             }
 
             const links = this.state.chartData.links.map(d => Object.create(d));
             const nodes = this.state.chartData.nodes.map(d => Object.create(d));
 
-            // const n = 100;
-            // const nodes = d3.range(n).map(function (i) { return { id: i, }; });
-            // const links = d3.range(n).map(function (i) {
-            //     return {
-            //         source: i,
-            //         target: Math.floor(Math.random() * n)
-            //     }
-            // })
-
             const simulation = d3.forceSimulation(nodes)
                 .force("link", d3.forceLink(links).id(d => d.id))
                 .force("charge", d3.forceManyBody().strength(-10))
                 .force("center", d3.forceCenter(width / 2, height / 2));
-
-
-
-
 
             const rect = svgG.append("rect")
                 .attr("x", 0)
@@ -450,7 +423,6 @@
 
             const svg = svgG.append('g')
                 .attr('class', 'node-area');
-
 
             var linksG = svg.append("g")
                 .attr("class", "links");
@@ -491,61 +463,6 @@
                 })
                 .call(drag(simulation));
 
-
-            // const reDraw = () => {
-            //     const update_nodes = nodesG.selectAll("circle")
-            //         .data(nodes);
-            //     update_nodes.exit().remove();
-            //     node = update_nodes.enter()
-            //         .append("circle")
-            //         .attr("r", 5)
-            //         .attr("fill", color)
-            //         .on("mouseover", (e, t) => {
-            //             div.transition()
-            //                 .duration(200)
-            //                 .style("opacity", .9);
-            //             div.html(t.id)
-            //                 .style("left", (e.pageX) + "px")
-            //                 .style("top", (e.pageY - 28) + "px");
-            //         })
-            //         .on("mouseout", () => {
-            //             div.transition()
-            //                 .duration(500)
-            //                 .style("opacity", 0);
-            //         })
-            //         .call(drag(simulation))
-            //         .merge(update_nodes);
-            //     const update_links = linksG.selectAll("line")
-            //         .data(links);
-            //     update_links.exit().remove()
-            //     link = update_links.enter()
-            //         .append("line")
-            //         .merge(update_links)
-            // }
-
-            // const add = (e) => {
-            //     var n = {
-            //         id: nodes.length,
-            //         x: e.x,
-            //         y: e.y
-            //     }
-            //     var l = {
-            //         id: links.length,
-            //         source: n,
-            //         target: nodes[Math.floor(nodes.length * Math.random())]
-            //     }
-            //     links.push(l);
-            //     nodes.push(n);
-            //     simulation.nodes(nodes)
-            //         .force("link", d3.forceLink(links).id(d => d.id))
-            //         .force("charge", d3.forceManyBody().strength(-10))
-            //         .force("center", d3.forceCenter(width / 2, height / 2));
-
-            //     simulation.alpha(1);
-            //     simulation.restart();
-            //     reDraw();
-            // }
-
             simulation.on("tick", () => {
                 link
                     .attr("x1", d => d.source.x)
@@ -558,8 +475,6 @@
                     .attr("cy", d => d.y);
             });
 
-            // Add nodes on click
-            // rect.on("click", add, true)
             const chart = svgG.node();
             chartElement.appendChild(chart);
         }
