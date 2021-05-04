@@ -2,12 +2,21 @@
 <html lang="en">
 <title>htm Demo</title>
 
+<!-- stylesheets -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.2/css/bulma.min.css">
+
 <!-- styling -->
 <style>
+    .control.is-loading::after {
+        border: 2px solid #000;
+        border-right-color: transparent;
+        border-top-color: transparent;
+    }
+
     div.tooltip {
         position: absolute;
         text-align: center;
-        background:black;
+        background: black;
         color: white;
         padding: 5px;
         border: 0px;
@@ -15,9 +24,6 @@
         pointer-events: none;
     }
 </style>
-
-<!-- stylesheets -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.2/css/bulma.min.css">
 
 <!-- script imports -->
 <script defer src="https://use.fontawesome.com/releases/v5.15.3/js/all.js"></script>
@@ -33,6 +39,7 @@
 
     class App extends Component {
         state = {
+            accountLoading: false,
             burntBalance: 0,
             inviteeBonus: 0,
             balance: 0,
@@ -119,9 +126,6 @@
                 this.setState({ web3, accounts, contract: instance }, this.updateContractData);
             } catch (error) {
                 // Catch any errors for any of the above operations.
-                alert(
-                    `Failed to load web3, accounts, or contract. Check console for details.`,
-                );
                 console.error(error);
             }
         };
@@ -154,28 +158,41 @@
 
             }
 
-            console.log(`expectedRoyalty ${address}`, expectedRoyalty);
             return { nodes, links, expectedRoyalty };
         }
 
+        updateChartData = async () => {
+            this.setState({ accountLoading: true }, async () => {
+                console.log(this.state.accountLoading);
+                const { accounts } = this.state;
+                const address = accounts[0];
+
+                const chartData = await this.fetchChartData(address);
+                chartData.nodes.find((x) => x.id === address)["group"] = 1;
+                const invites = chartData.links.filter((x) => x.source === address).length;
+                const invitationTreeCount = chartData.nodes.length - 1;
+                const expectedRoyalty = Web3.utils.fromWei(chartData.expectedRoyalty.toString(), 'ether');
+
+                this.setState({ accountLoading: false, chartData, invites, invitationTreeCount, expectedRoyalty });
+            });
+            
+        }
+
         updateContractData = async () => {
-            const { accounts, contract } = this.state;
+            this.setState({ accountLoading: true }, async () => {
+                const { accounts, contract } = this.state;
 
-            // Get the value from the contract to prove it worked.
-            const address = accounts[0];
-            const burntBalance = Web3.utils.fromWei((await contract.methods.burntBalance().call()).toString(), 'ether');
-            const bonusBalance = await contract.methods.balances("0x0000000000000000000000000000000000000001").call();
-            const inviteeBonus = Web3.utils.fromWei((parseInt(bonusBalance) / 10).toString(), 'ether')
-            const balance = Web3.utils.fromWei((await contract.methods.balances(address).call()).toString(), 'ether');
-            const ancestor = await contract.methods.ancestry(address).call();
-            const chartData = await this.fetchChartData(address);
-            chartData.nodes.find((x) => x.id === address)["group"] = 1;
-            const invites = chartData.links.filter((x) => x.source === address).length;
-            const invitationTreeCount = chartData.nodes.length - 1;
-            const expectedRoyalty = Web3.utils.fromWei(chartData.expectedRoyalty.toString(), 'ether');
+                // Get the value from the contract to prove it worked.
+                const address = accounts[0];
+                const burntBalance = Web3.utils.fromWei((await contract.methods.burntBalance().call()).toString(), 'ether');
+                const bonusBalance = await contract.methods.balances("0x0000000000000000000000000000000000000001").call();
+                const inviteeBonus = Web3.utils.fromWei((parseInt(bonusBalance) / 10).toString(), 'ether')
+                const balance = Web3.utils.fromWei((await contract.methods.balances(address).call()).toString(), 'ether');
+                const ancestor = await contract.methods.ancestry(address).call();
 
-            // Update state with the result.
-            this.setState({ burntBalance, inviteeBonus, balance, ancestor, chartData, invites, invitationTreeCount, expectedRoyalty });
+                // Update state with the result.
+                this.setState({ accountLoading: false, burntBalance, inviteeBonus, balance, ancestor }, this.updateChartData);
+            });
         };
 
         join = async () => {
@@ -227,7 +244,32 @@
 
         render() {
             if (!this.state.web3) {
-                return html`<div>Loading Web3, accounts, and contract...</div>`;
+                return html`
+                    <div class="columns is-family-monospace">
+                        <div class="column is-6 is-offset-3">
+                            <section class="section columns has-text-centered my-5">
+                                <div class="box p-5 is-flex is-flex-direction-column is-flex-justify-center is-align-items-center column is-8 is-offset-2">
+                                    <div class="card-content">
+                                        <p class="subtitle">
+                                            You need to switch your wallet network to Binance Smart Chain Mainnet/Testnet!
+                                        </p>
+
+                                        <p class="my-5">(or)</p>
+
+                                        <p class="subtitle">
+                                            No web3 compatible wallet provider detected!
+                                        </p>
+                                    </div>
+                                    <p class="has-text-weight-bold">Note: You can add Binance Smart Chain as a custom network to Metamask</p>
+                                    <figure class="image my-5">
+                                        <img src="https://lh5.googleusercontent.com/wRHX351ldc2PWT1wXE6U1NYyUkaEmVHVoA0Ex4LKz51prqRgwJcBCs2DhL0lQ3PVmE7Sv2dE02ReXcHlXNaf0lczFZtFl5htOtAzUYkDzu5eySe7y4wpcMaCzY6GaHv6NCXM1qZQ"/>
+                                    </figure>
+                                    <button class="button mt-3 is-black" onclick="window.open('https://docs.binance.org/smart-chain/wallet/metamask.html')">Read More</button>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                `;
             }
             const address = this.state.accounts[0];
             return html`
@@ -244,13 +286,13 @@
                                 <div class="level-item has-text-centered">
                                     <div>
                                         <p class="heading">BNB Burnt</p>
-                                        <p class="title">${this.state.burntBalance} BNB</p>
+                                        <p class="title is-4">${this.state.burntBalance} BNB</p>
                                     </div>
                                 </div>
                                 <div class="level-item has-text-centered">
                                     <div>
                                         <p class="heading">Current Invitee Bonus</p>
-                                        <p class="title">${this.state.inviteeBonus} BNB</p>
+                                        <p class="title is-4">${this.state.inviteeBonus} BNB</p>
                                     </div>
                                 </div>
                             </nav>
@@ -276,36 +318,37 @@
                         </section>
 
                         <section class="section ${this.isNew() ? "is-hidden" : ""}">
-                            <div class="tile is-ancestor">
-                                <div class="tile is-5 is-vertical is-parent">
-                                    <div class="tile is-child">
-                                        <div class="box">
-                                            <p class="title is-5">Account \
-                                                <span class="tag is-black">
-                                                    ${address.substr(0, 15)}...
-                                                </span>
-                                            </p>
-                                            
-                                            <div>Balance: ${this.state.balance} BNB</div>
-                                            <div>Expected Royalty: ${this.state.expectedRoyalty} BNB</div>
-                                            <div>Royalty Paid: ${Web3.utils.fromWei(this.state.royaltyPaid.toString())} BNB</div>
-                                            <div>Invites: ${this.state.invites}</div>
-                                            <div>Invitation Tree Count: ${this.state.invitationTreeCount}</div>
-                                        </div>
+                            <div class="columns">
+                                <div class="box p-5 column is-8 is-offset-2">
+                                    <p class="title is-5 is-flex is-justify-content-space-between is-align-items-start">
+                                        <p>
+                                            Account \
+                                            <span class="tag is-black">
+                                                ${address.substr(0, 15)}...
+                                            </span>
+                                        </p>
+                                        <div class="control ${this.state.accountLoading ? "is-loading" : ""}"></div>
+                                    </p>
+                                    
+                                    <div>Balance: ${this.state.balance} BNB</div>
+                                    <div>Expected Royalty: ${this.state.expectedRoyalty} BNB</div>
+                                    <div>Royalty Paid: ${Web3.utils.fromWei(this.state.royaltyPaid.toString())} BNB</div>
+                                    <div>Invites: ${this.state.invites}</div>
+                                    <div>Invitation Tree Count: ${this.state.invitationTreeCount}</div>
+                                </div>
+                            </div>
 
-                                        <div class="is-flex is-justify-content-space-evenly">
-                                            <button class="button is-black" onClick=${() => this.showModal("inviteModal")}>Invite Member</button>
-                                            <button class="button is-black" onClick=${() => this.showModal("withdrawModal")}>Withdraw BNB</button>
-                                        </div>
-                                        
-                                    </div>
-                                </div>
-                                <div class="tile is-parent">
-                                    <div class="tile is-child box is-flex is-flex-direction-column is-justify-content-flex-start">
-                                        <p class="title is-5">Invitation Tree</p>
-                                        <div id="chart" class="is-flex-grow-5" style="min-height: 40vh;"></div>
-                                    </div>
-                                </div>
+                            <div class="my-5 is-flex is-justify-content-center">
+                                <button class="button is-black mx-5" onClick=${() => this.showModal("inviteModal")}>Invite Member</button>
+                                <button class="button is-black mx-5" onClick=${() => this.showModal("withdrawModal")}>Withdraw BNB</button>
+                            </div>
+
+                            <div class="tile is-child box is-flex is-flex-direction-column is-justify-content-flex-start">
+                                <p class="title is-5 is-flex is-justify-content-space-between is-align-items-start">
+                                    <p>Invitation Tree</p>
+                                    <div class="control ${this.state.accountLoading ? "is-loading" : ""}"></div>
+                                </p>
+                                <div id="chart" class="is-flex-grow-5" style="min-height: 70vh;"></div>
                             </div>
                         </section>
 
@@ -343,7 +386,7 @@
             const svgG = d3.create("svg")
                 .attr("width", width)
                 .attr("height", height)
-                            
+
             // Define the div for the tooltip
             const div = d3.select("body").append("div")
                 .attr("class", "tooltip")
