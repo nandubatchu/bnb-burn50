@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<title>htm Demo</title>
+
+<!-- styling -->
+<style>
+    div.tooltip {
+        position: absolute;
+        text-align: center;
+        background:black;
+        color: white;
+        padding: 5px;
+        border: 0px;
+        border-radius: 8px;
+        pointer-events: none;
+    }
+</style>
+
+<!-- stylesheets -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.2/css/bulma.min.css">
+
+<!-- script imports -->
+<script defer src="https://use.fontawesome.com/releases/v5.15.3/js/all.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/6.7.0/d3.min.js"
+    integrity="sha512-cd6CHE+XWDQ33ElJqsi0MdNte3S+bQY819f7p3NUHgwQQLXSKjE4cPZTeGNI+vaxZynk1wVU3hoHmow3m089wA=="
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js"></script>
+<script type="text/javascript" src="https://unpkg.com/web3modal@1.9.0/dist/index.js"></script>
+
+<!-- custom script -->
+<script type="module">
+    import { html, Component, render } from 'https://unpkg.com/htm/preact/standalone.module.js';
+
+    class App extends Component {
+        state = {
+            burntBalance: 0,
+            inviteeBonus: 0,
+            balance: 0,
+            expectedRoyalty: 0,
+            royaltyPaid: 0,
+            ancestor: null,
+            chartData: {
+                nodes: [],
+                links: []
+            },
+            invites: 0,
+            invitationTreeCount: 0,
+            web3: null,
+            accounts: null,
+            contract: null
+        };
+
+        getProvider = async () => {
+            //  You have to refer to default since it was bundled for ESModules
+            // but after that the documentation will be the same
+
+            const Web3Modal = window.Web3Modal.default;
+            const providerOptions = {
+                /* See Provider Options Section */
+            };
+
+            const web3Modal = new Web3Modal({
+                network: "rinkeby", // optional
+                cacheProvider: true, // optional
+                providerOptions // required
+            });
+
+            const provider = await web3Modal.connect();
+            provider.on("chainChanged", (chainId) => {
+                document.location.reload();
+            });
+            provider.on("accountsChanged", (chainId) => {
+                document.location.reload();
+            });
+            return provider;
+        }
+
+        componentDidMount = async () => {
+            try {
+                // Get network provider and web3 instance.
+                // const web3 = await getWeb3();
+                const web3 = new Web3(await this.getProvider());
+
+                // Use web3 to get the user's accounts.
+                const accounts = await web3.eth.getAccounts();
+
+                // Get the contract instance.
+                const networkId = await web3.eth.net.getId();
+                const Burn50 = await fetch('./contracts/Burn50.json')
+                    .then(response => response.json())
+                const deployedNetwork = Burn50.networks[networkId];
+                const instance = new web3.eth.Contract(
+                    Burn50.abi,
+                    deployedNetwork && deployedNetwork.address,
+                );
+
+                instance.events.allEvents({
+                    fromBlock: 0
+                }, function (error, event) { console.log(event); })
+                    .on("connected", function (subscriptionId) {
+                        console.log(subscriptionId);
+                    })
+                    .on('data', (event) => {
+                        console.log(event); // same results as the optional callback above
+                        if (event.event === "RoyaltyPaid" && event.returnValues[0] === accounts[0]) {
+                            const royaltyPaid = this.state.royaltyPaid + parseInt(event.returnValues[2]);
+                            this.setState({ royaltyPaid });
+                        }
+                    })
+                    .on('changed', function (event) {
+                        // remove event from local database
+                    })
+                    .on('error', function (error, receipt) { // If the transaction was rejected by the network with a receipt, the second parameter will be the receipt.
+                        // ...
+                    });
+
+                // Set web3, accounts, and contract to the state, and then proceed with an
+                // example of interacting with the contract's methods.
+                this.setState({ web3, accounts, contract: instance }, this.updateContractData);
+            } catch (error) {
+                // Catch any errors for any of the above operations.
+                alert(
+                    `Failed to load web3, accounts, or contract. Check console for details.`,
+                );
+                console.error(error);
+            }
+        };
+
+        fetchChartData = async (address) => {
+            const { contract } = this.state;
+            let nodes = [];
+            let links = [];
+            let expectedRoyalty = 0;
+
+            nodes.push({ id: address });
+
+            let childIndex = 0;
+            while (true) {
+                try {
+                    const child = await contract.methods.reverseAncestry(address, childIndex).call();
+                    const childBalance = await contract.methods.balances(child).call();
+                    console.log(child, childBalance);
+                    links.push({ source: address, target: child });
+                    expectedRoyalty += (childBalance / 2);
+                    const childChartData = await this.fetchChartData(child);
+                    console.log(childChartData);
+                    nodes = [...nodes, ...childChartData.nodes];
+                    links = [...links, ...childChartData.links];
+                    expectedRoyalty += (childChartData.expectedRoyalty / 2);
+                    childIndex += 1;
+                } catch (error) {
+                    break;
+                }
+
+            }
+            // console.log(`nodes ${address}`, nodes);
+            // console.log(`links ${address}`, links);
+            console.log(`expectedRoyalty ${address}`, expectedRoyalty);
+            return { nodes, links, expectedRoyalty };
+        }
+
+        updateContractData = async () => {
+            const { accounts, contract } = this.state;
+
+            // Get the value from the contract to prove it worked.
+            const address = accounts[0];
+            const burntBalance = Web3.utils.fromWei((await contract.methods.burntBalance().call()).toString(), 'ether');
+            const bonusBalance = await contract.methods.balances("0x0000000000000000000000000000000000000001").call();
+            const inviteeBonus = Web3.utils.fromWei((parseInt(bonusBalance) / 10).toString(), 'ether')
+            const balance = Web3.utils.fromWei((await contract.methods.balances(address).call()).toString(), 'ether');
+            const ancestor = await contract.methods.ancestry(address).call();
+            const chartData = await this.fetchChartData(address);
+            chartData.nodes.find((x) => x.id === address)["group"] = 1;
+            const invites = chartData.links.filter((x) => x.source === address).length;
+            const invitationTreeCount = chartData.nodes.length - 1;
+            const expectedRoyalty = Web3.utils.fromWei(chartData.expectedRoyalty.toString(), 'ether');
+            // royaltyPaid: 0,
+
+            // Update state with the result.
+            this.setState({ burntBalance, inviteeBonus, balance, ancestor, chartData, invites, invitationTreeCount, expectedRoyalty });
+        };
+
+        join = async () => {
+            const { accounts, contract } = this.state;
+            await contract.methods.join().send({ from: accounts[0], value: Web3.utils.toWei("0.02", 'ether') });
+            this.updateContractData();
+        }
+
+        invite = async () => {
+            this.closeModal("inviteModal");
+            const { accounts, contract } = this.state;
+            const newAddress = document.getElementById("newAddress").value;
+            await contract.methods.invite(newAddress).send({ from: accounts[0], value: Web3.utils.toWei("0.002", 'ether') })
+            this.updateContractData();
+        }
+
+        pay = async () => {
+            this.closeModal("withdrawModal");
+            const { accounts, contract } = this.state;
+            const toAddress = document.getElementById("toAddress").value;
+            const value = document.getElementById("value").value;
+            const valueInWei = Web3.utils.toWei(value)
+            await contract.methods.pay(toAddress, valueInWei).send({ from: accounts[0] })
+            this.updateContractData();
+        }
+
+        isNew = () => {
+            if (!this.state.ancestor || this.state.ancestor == "0x0000000000000000000000000000000000000000") {
+                return true;
+            }
+            return false;
+        }
+
+        showModal = (modalId) => {
+            document.getElementById(modalId).classList.add(["is-active"]);
+        }
+
+        closeModal = (modalId) => {
+            document.getElementById(modalId).classList.remove(["is-active"]);
+        }
+
+        componentDidUpdate = () => {
+            // code to run after render goes here
+            if (!this.isNew()) {
+                document.getElementById("chart").innerHTML = "";
+                this.plotChart();
+            }
+        };
+
+        render() {
+            if (!this.state.web3) {
+                return html`<div>Loading Web3, accounts, and contract...</div>`;
+            }
+            const address = this.state.accounts[0];
+            return html`
+                <div class="columns is-family-monospace">
+                    <div class="column is-8 is-offset-2">
+                        <section class="section">
+                            <nav class="level">
+                                <p class="level-item has-text-centered">
+                                    <p className="is-size-1 has-text-weight-bold">Burn50</p>
+                                </p>
+                            </nav>
+
+                            <nav class="level">
+                                <div class="level-item has-text-centered">
+                                    <div>
+                                        <p class="heading">BNB Burnt</p>
+                                        <p class="title">${this.state.burntBalance} BNB</p>
+                                    </div>
+                                </div>
+                                <div class="level-item has-text-centered">
+                                    <div>
+                                        <p class="heading">Current Invitee Bonus</p>
+                                        <p class="title">${this.state.inviteeBonus} BNB</p>
+                                    </div>
+                                </div>
+                            </nav>
+                        </section>
+                        
+                        <section class="section columns has-text-centered ${this.isNew() ? "" : "is-hidden"}">
+                            <div class="box p-5 is-flex is-flex-direction-column is-flex-justify-center is-align-items-center column is-6 is-offset-3">
+                                <div class="card-content">
+                                    <p class="subtitle">
+                                        Seems like you are not yet part of the network!
+                                    </p>
+                                    <p>
+                                        You can either request someone in the network for an invite & grab some invitee bonus!!
+                                    </p>
+                                    <p class="m-3">
+                                        (or)
+                                    </p>
+                                    
+                                </div>
+                                <button class="button mb-3 is-black" onclick=${this.join.bind(this)}>Join Now</button>
+                                <p class="has-text-weight-bold">Note: Self joining would cost you 0.02 BNB</p>
+                            </div>
+                        </section>
+
+                        <section class="section ${this.isNew() ? "is-hidden" : ""}">
+                            <div class="tile is-ancestor">
+                                <div class="tile is-5 is-vertical is-parent">
+                                    <div class="tile is-child">
+                                        <div class="box">
+                                            <p class="title is-5">Account \
+                                                <span class="tag is-black">
+                                                    ${address.substr(0, 15)}...
+                                                </span>
+                                            </p>
+                                            
+                                            <div>Balance: ${this.state.balance} BNB</div>
+                                            <div>Expected Royalty: ${this.state.expectedRoyalty} BNB</div>
+                                            <div>Royalty Paid: ${Web3.utils.fromWei(this.state.royaltyPaid.toString())} BNB</div>
+                                            <div>Invites: ${this.state.invites}</div>
+                                            <div>Invitation Tree Count: ${this.state.invitationTreeCount}</div>
+                                        </div>
+
+                                        <div class="is-flex is-justify-content-space-evenly">
+                                            <button class="button is-black" onClick=${() => this.showModal("inviteModal")}>Invite Member</button>
+                                            <button class="button is-black" onClick=${() => this.showModal("withdrawModal")}>Withdraw BNB</button>
+                                        </div>
+                                        
+                                    </div>
+                                </div>
+                                <div class="tile is-parent">
+                                    <div class="tile is-child box is-flex is-flex-direction-column is-justify-content-flex-start">
+                                        <p class="title is-5">Invitation Tree</p>
+                                        <div id="chart" class="is-flex-grow-5" style="min-height: 40vh;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <div id="inviteModal" class="modal">
+                            <div class="modal-background" onClick=${() => this.closeModal("inviteModal")}></div>
+                            <div class="modal-content has-text-centered box p-5 is-flex is-flex-direction-column is-flex-justify-center is-align-items-center column is-4 is-offset-4">
+                                <p class="subtitle">
+                                    You earn royalty every time your invitee withdraws from his/her Burn50 balance!
+                                </p>
+                                <input id="newAddress" class="input my-3" type="text" placeholder="Invitee Address"/>
+                                <button class="button is-black my-3" onClick=${this.invite.bind(this)}>Invite!</button>
+                                <p class="has-text-weight-bold">Note: Each Invite would cost you 0.002 BNB</p>
+                            </div>
+                        </div>
+
+                        <div id="withdrawModal" class="modal">
+                            <div class="modal-background" onClick=${() => this.closeModal("withdrawModal")}></div>
+                            <div class="modal-content has-text-centered box p-5 is-flex is-flex-direction-column is-flex-justify-center is-align-items-center column is-4 is-offset-4">
+                                <input id="toAddress" class="input my-3" type="text" placeholder="Destination Address" value="${address}"/>
+                                <input id="value" class="input my-3" type="number" placeholder="Amount (in BNB)"/>
+                                <button class="button is-black my-3" onClick=${this.pay.bind(this)}>Send</button>
+                                <p class="has-text-weight-bold">Note: Each withdrawal would cost Royalty Fee (Equal to Withdrawal Amount)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        plotChart = () => {
+            const chartElement = document.getElementById("chart");
+            const width = chartElement.offsetWidth;
+            const height = chartElement.offsetHeight;
+
+            const svgG = d3.create("svg")
+                .attr("width", width)
+                .attr("height", height)
+            // .attr("viewBox", [0, 0, width, height]);
+
+            // Define the div for the tooltip
+            const div = d3.select("body").append("div")
+                .attr("class", "tooltip")
+                .style("opacity", 0);
+
+            let viewBoxX = 0, viewBoxY = 0;
+
+            const color = () => {
+                // const scale = d3.scaleOrdinal(d3.schemeCategory10);
+                // return d => scale(d.group);
+
+                // const scale = d3.scaleLinear().domain([10,1]).range(["grey", "black"]);
+                // return d => scale(d.group);
+
+                return (d) => {
+                    if (d.group & d.group == 1) {
+                        return "white"
+                    }
+                    return "black"
+                }
+            }
+
+            const strokeColor = () => {
+                return (d) => {
+                    if (d.group & d.group == 1) {
+                        return "black"
+                    }
+                    return "white"
+                }
+            }
+
+            const drag = simulation => {
+
+                function dragstarted(event) {
+                    if (!event.active) simulation.alphaTarget(0.3).restart();
+                    event.subject.fx = event.subject.x;
+                    event.subject.fy = event.subject.y;
+                }
+
+                function dragged(event) {
+                    event.subject.fx = event.x;
+                    event.subject.fy = event.y;
+                }
+
+                function dragended(event) {
+                    if (!event.active) simulation.alphaTarget(0);
+                    event.subject.fx = null;
+                    event.subject.fy = null;
+                }
+
+                return d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended);
+            }
+
+            const bgDrag = () => {
+
+                return d3.drag()
+                    // .on('start', function () {
+                    //     console.log('new dragstart is called');
+                    // })
+                    .on('drag', function (e) {
+                        viewBoxX -= e.dx;
+                        viewBoxY -= e.dy;
+                        svgG.select('g.node-area').attr('transform', 'translate(' + (-viewBoxX) + ',' + (-viewBoxY) + ')');
+                    })
+                // .on('end', function () {
+                //     console.log('new dragend is called');
+                // });
+            }
+
+            const links = this.state.chartData.links.map(d => Object.create(d));
+            const nodes = this.state.chartData.nodes.map(d => Object.create(d));
+
+            // const n = 100;
+            // const nodes = d3.range(n).map(function (i) { return { id: i, }; });
+            // const links = d3.range(n).map(function (i) {
+            //     return {
+            //         source: i,
+            //         target: Math.floor(Math.random() * n)
+            //     }
+            // })
+
+            const simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links).id(d => d.id))
+                .force("charge", d3.forceManyBody().strength(-10))
+                .force("center", d3.forceCenter(width / 2, height / 2));
+
+
+
+
+
+            const rect = svgG.append("rect")
+                .attr("x", 0)
+                .attr("y", 0)
+                .attr("width", width)
+                .attr("height", height)
+                .attr('fill', '#fff')
+                .call(bgDrag());
+
+            const svg = svgG.append('g')
+                .attr('class', 'node-area');
+
+
+            var linksG = svg.append("g")
+                .attr("class", "links");
+
+            var nodesG = svg.append("g")
+                .attr("class", "nodes");
+
+            var link = linksG
+                .selectAll("line")
+                .data(links)
+                .enter()
+                .append("line")
+                .attr("stroke", "#999")
+                .attr("stroke-opacity", 0.6)
+                .attr("stroke-width", d => Math.sqrt(d.value));
+
+            var node = nodesG
+                .selectAll("circle")
+                .data(nodes)
+                .enter()
+                .append("circle")
+                .attr("stroke", strokeColor())
+                .attr("stroke-width", 1.5)
+                .attr("r", 5)
+                .attr("fill", color())
+                .on("mouseover", (e, t) => {
+                    div.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    div.html(t.id)
+                        .style("left", (e.pageX) + "px")
+                        .style("top", (e.pageY - 28) + "px");
+                })
+                .on("mouseout", () => {
+                    div.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                })
+                .call(drag(simulation));
+
+
+            // const reDraw = () => {
+            //     const update_nodes = nodesG.selectAll("circle")
+            //         .data(nodes);
+            //     update_nodes.exit().remove();
+            //     node = update_nodes.enter()
+            //         .append("circle")
+            //         .attr("r", 5)
+            //         .attr("fill", color)
+            //         .on("mouseover", (e, t) => {
+            //             div.transition()
+            //                 .duration(200)
+            //                 .style("opacity", .9);
+            //             div.html(t.id)
+            //                 .style("left", (e.pageX) + "px")
+            //                 .style("top", (e.pageY - 28) + "px");
+            //         })
+            //         .on("mouseout", () => {
+            //             div.transition()
+            //                 .duration(500)
+            //                 .style("opacity", 0);
+            //         })
+            //         .call(drag(simulation))
+            //         .merge(update_nodes);
+            //     const update_links = linksG.selectAll("line")
+            //         .data(links);
+            //     update_links.exit().remove()
+            //     link = update_links.enter()
+            //         .append("line")
+            //         .merge(update_links)
+            // }
+
+            // const add = (e) => {
+            //     var n = {
+            //         id: nodes.length,
+            //         x: e.x,
+            //         y: e.y
+            //     }
+            //     var l = {
+            //         id: links.length,
+            //         source: n,
+            //         target: nodes[Math.floor(nodes.length * Math.random())]
+            //     }
+            //     links.push(l);
+            //     nodes.push(n);
+            //     simulation.nodes(nodes)
+            //         .force("link", d3.forceLink(links).id(d => d.id))
+            //         .force("charge", d3.forceManyBody().strength(-10))
+            //         .force("center", d3.forceCenter(width / 2, height / 2));
+
+            //     simulation.alpha(1);
+            //     simulation.restart();
+            //     reDraw();
+            // }
+
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                node
+                    .attr("cx", d => d.x)
+                    .attr("cy", d => d.y);
+            });
+
+            // Add nodes on click
+            // rect.on("click", add, true)
+            const chart = svgG.node();
+            chartElement.appendChild(chart);
+        }
+
+    }
+
+
+    render(html`<${App} page="All" />`, document.body);
+</script>
+
+</html>
