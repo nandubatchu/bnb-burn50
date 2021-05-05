@@ -45,7 +45,6 @@
             inviteeBonus: 0,
             balance: 0,
             expectedRoyalty: 0,
-            royaltyPaid: 0,
             ancestor: null,
             chartData: {
                 nodes: [],
@@ -103,25 +102,26 @@
                     deployedNetwork && deployedNetwork.address,
                 );
 
-                instance.events.allEvents({
-                    fromBlock: 0
-                }, function (error, event) { console.log(event); })
-                    .on("connected", function (subscriptionId) {
-                        console.log(subscriptionId);
-                    })
-                    .on('data', (event) => {
-                        console.log(event); // same results as the optional callback above
-                        if (event.event === "RoyaltyPaid" && event.returnValues[0] === accounts[0]) {
-                            const royaltyPaid = this.state.royaltyPaid + parseInt(event.returnValues[2]);
-                            this.setState({ royaltyPaid });
-                        }
-                    })
-                    .on('changed', function (event) {
-                        // remove event from local database
-                    })
-                    .on('error', function (error, receipt) { // If the transaction was rejected by the network with a receipt, the second parameter will be the receipt.
-                        // ...
-                    });
+                // instance.events.RoyaltyPaid({
+                //     filter: {byAddress: accounts[0]},
+                //     fromBlock: 0
+                // }, function (error, event) { console.log(event); })
+                //     .on("connected", function (subscriptionId) {
+                //         console.log(subscriptionId);
+                //     })
+                //     .on('data', (event) => {
+                //         console.log(event); // same results as the optional callback above
+                //         if (event.event === "RoyaltyPaid" && event.returnValues[0] === accounts[0]) {
+                //             const royaltyPaid = this.state.royaltyPaid + parseInt(event.returnValues[2]);
+                //             this.setState({ royaltyPaid });
+                //         }
+                //     })
+                //     .on('changed', function (event) {
+                //         // remove event from local database
+                //     })
+                //     .on('error', function (error, receipt) { // If the transaction was rejected by the network with a receipt, the second parameter will be the receipt.
+                //         // ...
+                //     });
 
                 // Set web3, accounts, and contract to the state, and then proceed with an
                 // example of interacting with the contract's methods.
@@ -335,7 +335,6 @@
                                     
                                     <div>Balance: ${this.state.balance} BNB</div>
                                     <div>Expected Royalty: ${this.state.expectedRoyalty} BNB</div>
-                                    <div>Royalty Paid: ${Web3.utils.fromWei(this.state.royaltyPaid.toString())} BNB</div>
                                     <div>Invites: ${this.state.invites}</div>
                                     <div>Invitation Tree Count: ${this.state.invitationTreeCount}</div>
                                 </div>
