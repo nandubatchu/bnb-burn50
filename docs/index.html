@@ -101,6 +101,10 @@
                     deployedNetwork && deployedNetwork.address,
                 );
 
+                if (!deployedNetwork || !deployedNetwork.address) {
+                    throw new Error(`Not deployed to network ${networkId}`)
+                }
+
                 // instance.events.RoyaltyPaid({
                 //     filter: {byAddress: accounts[0]},
                 //     fromBlock: 0
