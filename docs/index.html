@@ -31,9 +31,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/6.7.0/d3.min.js"
     integrity="sha512-cd6CHE+XWDQ33ElJqsi0MdNte3S+bQY819f7p3NUHgwQQLXSKjE4cPZTeGNI+vaxZynk1wVU3hoHmow3m089wA=="
     crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/vconsole@3.5.1/dist/vconsole.min.js"></script>
+
 <!-- web3 setup -->
 <script type="text/javascript" src="https://unpkg.com/web3@1.2.11/dist/web3.min.js"></script>
 <script type="text/javascript" src="https://unpkg.com/web3modal@1.9.0/dist/index.js"></script>
+<script type="text/javascript" src="https://unpkg.com/evm-chains@0.2.0/dist/umd/index.min.js"></script>
+
+<script>
+    // init vConsole
+    if (window.location.search.includes("console")) {
+        var vConsole = new VConsole();
+    }
+</script>
 
 <!-- custom script -->
 <script type="module">
@@ -74,6 +84,7 @@
                 providerOptions // required
             });
 
+            await web3Modal.clearCachedProvider();
             const provider = await web3Modal.connect();
             provider.on("chainChanged", (chainId) => {
                 document.location.reload();
