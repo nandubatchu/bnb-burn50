@@ -1,46 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
-<title>Burn50</title>
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<head>
+    <title>Burn50</title>
 
-<!-- stylesheets -->
-<link rel="icon" type="image/svg+xml" href="/fire.svg">
-<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.2/css/bulma.min.css"> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- styling -->
-<style>
-    .control.is-loading::after {
-        border: 2px solid #000;
-        border-right-color: transparent;
-        border-top-color: transparent;
-    }
+    <!-- stylesheets -->
+    <link rel="icon" type="image/svg+xml" href="/fire.svg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.2/css/bulma.min.css">
 
-    div.tooltip {
-        position: absolute;
-        text-align: center;
-        background: black;
-        color: white;
-        padding: 5px;
-        border: 0px;
-        border-radius: 8px;
-        pointer-events: none;
-    }
-</style>
+    <!-- styling -->
+    <style>
+        .control.is-loading::after {
+            border: 2px solid #000;
+            border-right-color: transparent;
+            border-top-color: transparent;
+        }
+
+        div.tooltip {
+            position: absolute;
+            text-align: center;
+            background: black;
+            color: white;
+            padding: 5px;
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+    </style>
+</head>
 
 <!-- script imports -->
-<!-- <script defer src="https://use.fontawesome.com/releases/v5.15.3/js/all.js"></script>
+<script defer src="https://use.fontawesome.com/releases/v5.15.3/js/all.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/6.7.0/d3.min.js"
     integrity="sha512-cd6CHE+XWDQ33ElJqsi0MdNte3S+bQY819f7p3NUHgwQQLXSKjE4cPZTeGNI+vaxZynk1wVU3hoHmow3m089wA=="
-    crossorigin="anonymous"></script> -->
-<body>
+    crossorigin="anonymous"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/vconsole@3.5.1/dist/vconsole.min.js"></script>
 
 <!-- web3 setup -->
 <script type="text/javascript" src="https://unpkg.com/web3@1.2.11/dist/web3.min.js"></script>
 <script type="text/javascript" src="https://unpkg.com/web3modal@1.9.0/dist/index.js"></script>
 <script type="text/javascript" src="https://unpkg.com/evm-chains@0.2.0/dist/umd/index.min.js"></script>
-<script type="text/javascript" src="https://unpkg.com/@walletconnect/web3-provider@1.2.1/dist/umd/index.min.js"></script>
+<script type="text/javascript"
+    src="https://unpkg.com/@walletconnect/web3-provider@1.2.1/dist/umd/index.min.js"></script>
 <script type="text/javascript" src="https://unpkg.com/fortmatic@2.0.6/dist/fortmatic.js"></script>
 
 <script>
@@ -51,9 +55,9 @@
         console.log(window.ethereum);
     }
 </script>
-</body>
+
 <!-- custom script -->
-<!-- <script type="module">
+<script type="module">
     import { html, Component, render } from 'https://unpkg.com/htm/preact/standalone.module.js';
 
     class App extends Component {
@@ -107,7 +111,7 @@
             return provider;
         }
 
-        handleLoad = async () => {
+        componentDidMount = async () => {
             try {
                 // Get network provider and web3 instance.
                 // const web3 = await getWeb3();
@@ -158,15 +162,7 @@
                 // Catch any errors for any of the above operations.
                 console.error(error);
             }
-        }
-
-        componentDidMount = () => {
-            window.addEventListener('load', this.handleLoad);
         };
-
-        componentWillUnmount = () => {
-            window.removeEventListener('load', this.handleLoad)
-        }
 
         fetchChartData = async (address) => {
             const { contract } = this.state;
@@ -564,6 +560,6 @@
 
 
     render(html`<${App} page="All" />`, document.body);
-</script> -->
+</script>
 
 </html>
