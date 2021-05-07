@@ -47,11 +47,13 @@
     // init vConsole
     if (window.location.search.includes("console")) {
         var vConsole = new VConsole();
+        console.log(window.web3);
+        console.log(window.ethereum);
     }
 </script>
 
 <!-- custom script -->
-<script type="module">
+<!-- <script type="module">
     import { html, Component, render } from 'https://unpkg.com/htm/preact/standalone.module.js';
 
     class App extends Component {
@@ -562,6 +564,6 @@
 
 
     render(html`<${App} page="All" />`, document.body);
-</script>
+</script> -->
 
 </html>
