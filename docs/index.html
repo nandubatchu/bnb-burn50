@@ -80,11 +80,6 @@
             contract: null
         };
 
-        constructor(props) {
-            super(props);
-            this.handleLoad = this.handleLoad.bind(this);
-        }
-
         getProvider = async () => {
             //  You have to refer to default since it was bundled for ESModules
             // but after that the documentation will be the same
