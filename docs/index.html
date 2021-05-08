@@ -402,7 +402,7 @@
                             <div class="modal-background" onClick=${() => this.closeModal("withdrawModal")}></div>
                             <div class="modal-content has-text-centered box p-5 is-flex is-flex-direction-column is-flex-justify-center is-align-items-center column is-4 is-offset-4">
                                 <input id="toAddress" class="input my-3" type="text" placeholder="Destination Address" value="${address}"/>
-                                <input id="value" class="input my-3" type="number" placeholder="Amount (in BNB)" value="${this.state.balance / 2}" min="0" max="${this.state.balance / 2}" step="${ this.state.balance ? 10 ** -(this.state.balance.toString().split(".")[1].length+1) : 0}"/>
+                                <input id="value" class="input my-3" type="number" placeholder="Amount (in BNB)" value="${this.state.balance / 2}" min="0" max="${this.state.balance / 2}" step="${ (this.state.balance && this.state.balance.toString().split(".")[1]) ? 10 ** -(this.state.balance.toString().split(".")[1].length+1) : 0}"/>
                                 <button class="button is-black my-3" onClick=${this.pay.bind(this)}>Send</button>
                                 <p class="has-text-weight-bold">Note: Each withdrawal would cost Royalty Fee (Equal to Withdrawal Amount)</p>
                             </div>
