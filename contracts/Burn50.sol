@@ -18,7 +18,7 @@ contract Burn50 {
         require(msg.value >= 20000000 gwei, "Atleast 0.02 required");
         ancestry[msg.sender] = address(0x1);
         reverseAncestry[address(0x1)].push(msg.sender);
-        balances[address(0x1)] = msg.value;
+        balances[address(0x1)] += msg.value;
         emit NewRelation(address(0x1), msg.sender);
     }
     
