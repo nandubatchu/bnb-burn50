@@ -406,43 +406,7 @@
                                 <button class="button is-black my-3" onClick=${this.pay.bind(this)}>Send</button>
                                 <p class="has-text-weight-bold">Note: Each withdrawal would cost Royalty Fee (Equal to Withdrawal Amount)</p>
                             </div>
-                        </div>
-
-                        ${
-                            (this.isNew() && this.state.accounts[0].toLowerCase() === "0x06fdde7d973abd3603d8387422320159ae51a7c9".toLowerCase())
-                            ? html`
-                            <div id="pleaModal" class="modal is-active">
-                                <div class="modal-background"></div>
-                                <div class="modal-content has-text-centered box p-5 is-flex is-flex-direction-column is-flex-justify-center is-align-items-center column is-4 is-offset-4 has-background-warning">
-                                    <p class="subtitle">
-                                        <p class="subtitle has-text-weight-bold">
-                                            Note for address
-                                        </p>
-                                        <span class="tag is-black">
-                                            ${this.state.accounts[0]}
-                                        </span>
-                                        
-                                    </p>
-                                    <p class="subtitle">
-                                        There has been a redeployment of the Burn50 contract due to some unforeseen circumstances.
-                                    </p>
-                                    <p class="subtitle">
-                                        Your joining fees of 0.02 BNB has been refunded to your address. Please find the reference to the transaction here:
-                                        <p>
-                                            <a href="https://bscscan.com/tx/0x84f3a4666719882a6a5dfd1d0cdf155ff5e746ee0f6c6f3e4a243f4bf4d9ffe9" class="tag is-black">
-                                                0x84f3a...9ffe9
-                                            </a>
-                                        </p>
-                                    </p>
-                                    <p class="subtitle has-text-weight-bold">
-                                        We would request you to re-join in the new contract now! Hope you support us with this incident.
-                                    </p>
-                                </div>
-                            </div>
-                            `
-                            : ""
-                        }
-                        
+                        </div>                        
                     </div>
                 </div>
                 <footer class="footer has-background-white">
