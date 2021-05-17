@@ -6,6 +6,16 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FECK9X09TT"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-FECK9X09TT');
+    </script>
+
     <!-- stylesheets -->
     <link rel="icon" type="image/svg+xml" href="/fire.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.2/css/bulma.min.css">
@@ -402,7 +412,7 @@
                             <div class="modal-background" onClick=${() => this.closeModal("withdrawModal")}></div>
                             <div class="modal-content has-text-centered box p-5 is-flex is-flex-direction-column is-flex-justify-center is-align-items-center column is-4 is-offset-4">
                                 <input id="toAddress" class="input my-3" type="text" placeholder="Destination Address" value="${address}"/>
-                                <input id="value" class="input my-3" type="number" placeholder="Amount (in BNB)" value="${this.state.balance / 2}" min="0" max="${this.state.balance / 2}" step="${ (this.state.balance && this.state.balance.toString().split(".")[1]) ? 10 ** -(this.state.balance.toString().split(".")[1].length+1) : 0}"/>
+                                <input id="value" class="input my-3" type="number" placeholder="Amount (in BNB)" value="${this.state.balance / 2}" min="0" max="${this.state.balance / 2}" step="${(this.state.balance && this.state.balance.toString().split(".")[1]) ? 10 ** -(this.state.balance.toString().split(".")[1].length + 1) : 0}"/>
                                 <button class="button is-black my-3" onClick=${this.pay.bind(this)}>Send</button>
                                 <p class="has-text-weight-bold">Note: Each withdrawal would cost Royalty Fee (Equal to Withdrawal Amount)</p>
                             </div>
