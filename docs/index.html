@@ -79,6 +79,22 @@
     }
 </script>
 
+<script>
+    const runWithTimeout = async (asyncFunction, timeout) => {
+        let ret = new Promise(async (resolve, reject) => {
+            setTimeout(() => {
+                if (!ret.isResolved) {
+                    reject();
+                }
+            }, timeout);
+            const returnValue = await asyncFunction();
+            console.log(returnValue);
+            resolve(returnValue);
+        });
+        return ret;
+    }
+</script>
+
 <!-- custom script -->
 <script type="module">
     import { html, Component, render } from 'https://unpkg.com/htm/preact/standalone.module.js';
@@ -103,23 +119,39 @@
             contract: null
         };
 
+        getBinanceChain = async () => {
+            return new Promise((resolve, reject) => {
+                window.addEventListener('load', () => {
+                    if (window.BinanceChain) {
+                        resolve(window.BinanceChain);
+                    } else {
+                        resolve();
+                    };
+                });
+            });
+
+        }
+
         getProvider = async () => {
             //  You have to refer to default since it was bundled for ESModules
             // but after that the documentation will be the same
 
-            const Web3Modal = window.Web3Modal.default;
-            const providerOptions = {
-                /* See Provider Options Section */
-            };
+            let provider = await this.getBinanceChain();
+            if (!provider) {
+                const Web3Modal = window.Web3Modal.default;
+                const providerOptions = {
+                    /* See Provider Options Section */
+                };
 
-            const web3Modal = new Web3Modal({
-                disableInjectedProvider: false,
-                cacheProvider: false, // optional
-                providerOptions // required
-            });
+                const web3Modal = new Web3Modal({
+                    disableInjectedProvider: false,
+                    cacheProvider: false, // optional
+                    providerOptions // required
+                });
 
-            await web3Modal.clearCachedProvider();
-            const provider = await web3Modal.connect();
+                await web3Modal.clearCachedProvider();
+                const provider = await web3Modal.connect();
+            }
             provider.on("chainChanged", (chainId) => {
                 document.location.reload();
             });
@@ -132,11 +164,7 @@
         componentDidMount = async () => {
             try {
                 // Get network provider and web3 instance.
-                if (window.BinanceChain) {
-                    const web3 = new Web3(window.BinanceChain);
-                } else {
-                    const web3 = new Web3(await this.getProvider());
-                }
+                const web3 = new Web3(await this.getProvider());
 
                 // Use web3 to get the user's accounts.
                 const accounts = await web3.eth.getAccounts();
@@ -196,7 +224,10 @@
             let childIndex = 0;
             while (true) {
                 try {
-                    const child = await contract.methods.reverseAncestry(address, childIndex).call();
+                    const child = await runWithTimeout(contract.methods.reverseAncestry(address, childIndex).call, 2000);
+                    if (child === undefined) {
+                        throw new Error(`No further child for ${address}`);
+                    }
                     const childBalance = await contract.methods.balances(child).call();
                     links.push({ source: address, target: child });
                     expectedRoyalty += (childBalance / 2);
@@ -295,9 +326,9 @@
         };
 
         btnOnClickHandler = (btnHandler) => {
-            return (e) => { 
-                publishEvent("button_click", {name: e.target.innerText}); 
-                btnHandler(e); 
+            return (e) => {
+                publishEvent("button_click", { name: e.target.innerText });
+                btnHandler(e);
             };
         }
 
