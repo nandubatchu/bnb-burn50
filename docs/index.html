@@ -87,9 +87,12 @@
                     reject();
                 }
             }, timeout);
-            const returnValue = await asyncFunction();
-            console.log(returnValue);
-            resolve(returnValue);
+            try {
+                const returnValue = await asyncFunction();
+                resolve(returnValue);
+            } catch (error) {
+                reject(error);
+            }
         });
         return ret;
     }
@@ -150,7 +153,7 @@
                 });
 
                 await web3Modal.clearCachedProvider();
-                const provider = await web3Modal.connect();
+                provider = await web3Modal.connect();
             }
             provider.on("chainChanged", (chainId) => {
                 document.location.reload();
