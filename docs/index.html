@@ -132,8 +132,11 @@
         componentDidMount = async () => {
             try {
                 // Get network provider and web3 instance.
-                // const web3 = await getWeb3();
-                const web3 = new Web3(await this.getProvider());
+                if (window.BinanceChain) {
+                    const web3 = new Web3(window.BinanceChain);
+                } else {
+                    const web3 = new Web3(await this.getProvider());
+                }
 
                 // Use web3 to get the user's accounts.
                 const accounts = await web3.eth.getAccounts();
